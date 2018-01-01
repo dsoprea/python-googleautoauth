@@ -1,0 +1,1 @@
+googleautoauth/resources/requirements.txt

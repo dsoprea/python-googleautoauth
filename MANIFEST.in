@@ -1,0 +1,3 @@
+include googleautoauth/resources/README.rst
+include googleautoauth/resources/requirements.txt
+include googleautoauth/resources/version.txt
