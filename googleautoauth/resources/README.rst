@@ -11,7 +11,7 @@ The Google API OAuth authorization process is very complex when running from com
 6. User: Provides the code to the tool at the command-line.
 7. Developer: Does a final authorization with Google using the token.
 
-The tool must also periodically refresh its authorization (whenever the expiration timestamp is reached).
+The tool must also periodically renew its authorization (whenever the expiration timestamp is reached).
 
 This tool eliminates most of the steps:
 
@@ -44,7 +44,7 @@ Build your client-identity::
 
     cc = googleautoauth.authorize.build_client_credentials(client_id, client_secret)
 
-Create a `GoogleAuthorizer` object::
+Create a `GoogleAuthorizer` object (`AuthorizerBridge` fulfills this)::
 
     storage_filepath = '~/.token'
     scopes = [
@@ -57,16 +57,16 @@ Create an `AutoAuth` object::
 
     aa = googleautoauth.auto_auth.AutoAuth(ab)
 
-Run the authorization process detailed above::
+Run the automatic process detailed above::
 
     aa.get_and_write_creds()
 
 
-Frequently check and refresh token::
+Frequently check the token and renew if necessary::
 
     ab.authorize.check_for_renew()
 
-This call has a trivial cost if the token does not need to be refreshed.
+This call has a trivial cost if the token does not need to be renewed.
 
 For practical examples, see the tests in `tests/test_authorize.py`.
 
