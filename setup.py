@@ -25,7 +25,7 @@ setuptools.setup(
     keywords='google oauth oauth2',
     author='Dustin Oprea',
     author_email='dustin@randomingenuity.com',
-    url="https://github.com/dsoprea/python-google-autoauth",
+    url="https://github.com/dsoprea/python-googleautoauth",
     packages=setuptools.find_packages(exclude=['tests']),
     include_package_data=True,
     zip_safe=False,
