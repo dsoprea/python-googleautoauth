@@ -13,6 +13,8 @@ import httplib2
 import googleautoauth.google_authorizer
 import googleautoauth.client
 
+_DEFAULT_RETRIES = 5
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -126,13 +128,36 @@ class Authorize(object):
 
         return self.__token
 
+    def _robust(self, cb):
+        n = _DEFAULT_RETRIES
+        while n > 0:
+            try:
+                cb()
+            except oauth2client.client.FlowExchangeError as e:
+                if str(e) == 'invalid_grant':
+                    n -= 1
+
+                    if n == 0:
+                        # We've run out of retries.
+                        raise
+
+                    continue
+
+                # Any other exception.
+                raise
+            else:
+                return
+
     def authorize(self, token):
         """Called with the code the user gets from Google."""
 
         flow = self._get_flow()
 
-        updated_token = flow.step2_exchange(token)
-        self._update_token(updated_token)
+        def cb():
+            updated_token = flow.step2_exchange(token)
+            self._update_token(updated_token)
+
+        self._robust(cb)
 
     def get_client(self, *args, **kwargs):
         """Produce the actual API client. THE CLIENT OBJECT SHOULD *NOT* BE

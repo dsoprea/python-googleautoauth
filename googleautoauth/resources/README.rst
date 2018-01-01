@@ -61,16 +61,41 @@ Run the automatic process detailed above::
 
     aa.get_and_write_creds()
 
+Make an API client:
 
+    # Get a YouTube API client.
+    client = ab.authorize.get_client('youtube', 'v3')
 
-Frequently check the token and renew if necessary::
+Example usage:
+
+    playlists = client.playlists()
+
+    request = playlists.list(
+            mine=True,
+            part='contentDetails')
+
+    result = request.execute()
+    # result['kind'] == '(kind of entity)'
+
+To check the token and renew if necessary::
 
     ab.authorize.check_for_renew()
 
-This call has a trivial cost if the token does not need to be renewed. Note that this is implicitly done on every call to
+
+*check_for_renew* Notes
+~~~~~~~~~~~~~~~~~~~~~~~
+
+- This call has a trivial cost if the token does not need to be renewed.
+- This call is implicitly made on every invocation of `get_client()` (above). **Do not cache the client** unless you are prepared to regularly call `check_for_renew()` yourself.
 
 
-For practical examples, see the tests in `tests/test_authorize.py`.
+Resume Session
+--------------
+
+When you want to resume the same authorization session later (which should work indefinitely since the process implicitly renews the authorization token periodically), you may directly use the `Authorize` class (instead of `AutoAuth`)::
+
+    authorize = googleautoauth.authorize.Authorize(storage_filepath, client_credentials, scopes)
+    client = authorize.get_client('youtube', 'v3')
 
 
 Testing

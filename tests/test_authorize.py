@@ -38,32 +38,27 @@ class TestAuthorize(unittest.TestCase):
             # Get the inner `Authorize` object being managed by the authorizor.
             authorize = ta.authorize
 
-            # # We should get an error since the token has already been
-            # # authorized against the server.
+            # We should get an error since the token has already been
+            # authorized against the server.
 
-            # try:
-            #     authorize.authorize(ta.token)
-            # except oauth2client.client.FlowExchangeError as e:
-            #     if str(e) != "invalid_grantCode was already redeemed.":
-            #         raise
-            # else:
-            #     raise Exception("Expected an error from using the token more than once.")
+            try:
+                authorize.authorize(ta.token)
+            except oauth2client.client.FlowExchangeError as e:
+                if str(e) != "invalid_grantCode was already redeemed.":
+                    raise
+            else:
+                raise Exception("Expected an error from using the token more than once.")
 
-            # # Read back the final authorization.
-            # self.assertTrue(issubclass(authorize.token.__class__, oauth2client.client.OAuth2Credentials))
+            # Read back the final authorization.
+            self.assertTrue(issubclass(authorize.token.__class__, oauth2client.client.OAuth2Credentials))
 
-            # original_token = authorize.token.access_token
+            original_token = authorize.token.access_token
 
-            # # Should be ignored since we couldn't possible have expired yet.
-            # authorize.check_for_renew()
+            # Should be ignored since we couldn't possibly have expired yet.
+            authorize.check_for_renew()
 
-            # # The token shouldn't have changed because we haven't yet expired.
-            # self.assertEquals(authorize.token.access_token, original_token)
-
-            # authorize.check_for_renew(do_force=True)
-
-            # # The token shouldn't have changed even when we force a refresh.
-            # self.assertEquals(authorize.token.access_token, original_token)
+            # The token shouldn't have changed because we haven't yet expired.
+            self.assertEquals(authorize.token.access_token, original_token)
 
             client = authorize.get_client('youtube', 'v3')
             playlists = client.playlists()
@@ -74,19 +69,3 @@ class TestAuthorize(unittest.TestCase):
 
             result = request.execute()
             self.assertEquals(result['kind'], 'youtube#playlistListResponse')
-
-            # print(result.keys())
-
-            # print('')
-
-            # print(result['etag'])
-            # print(result['kind'])
-            # # print(result['ok'])
-
-            # results_per_page = result['pageInfo']['resultsPerPage']
-            # total_results = result['pageInfo']['totalResults']
-
-            # print('')
-
-            # # for item in result['items']:
-            # #     print(item)

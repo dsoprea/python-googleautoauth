@@ -1,7 +1,9 @@
+import sys
 import os
 import tempfile
 import shutil
 import contextlib
+import io
 
 import googleautoauth.authorize
 
@@ -62,3 +64,20 @@ def get_test_authorizer():
                 scopes)
 
         yield a
+
+@contextlib.contextmanager
+def capture_output(streams_cb=None):
+    stdout = sys.stdout
+    stderr = sys.stderr
+
+    if streams_cb is not None:
+        streams_cb(stdout, stderr)
+
+    sys.stdout = io.StringIO()
+    sys.stderr = io.StringIO()
+
+    try:
+        yield
+    finally:
+        sys.stdout = stdout
+        sys.stderr = stderr
