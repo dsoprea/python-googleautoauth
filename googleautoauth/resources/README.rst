@@ -62,11 +62,13 @@ Run the automatic process detailed above::
     aa.get_and_write_creds()
 
 
+
 Frequently check the token and renew if necessary::
 
     ab.authorize.check_for_renew()
 
-This call has a trivial cost if the token does not need to be renewed.
+This call has a trivial cost if the token does not need to be renewed. Note that this is implicitly done on every call to
+
 
 For practical examples, see the tests in `tests/test_authorize.py`.
 

@@ -260,12 +260,19 @@ class AuthorizerBridge(googleautoauth.google_authorizer.GoogleAuthorizer):
         return self.__a.get_auth_url()
 
     def do_authorize(self, token):
+        self.__a.authorize(token)
         self.__token = token
 
     @property
     def token(self):
+        """The raw string token returned from Google. This is different from
+        the underlying token object in the Authorize object.
+        """
+
         return self.__token
 
     @property
     def authorize(self):
+        """The underlying `Authorize` object."""
+
         return self.__a
