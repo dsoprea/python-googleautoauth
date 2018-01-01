@@ -5,11 +5,13 @@ import json
 import datetime
 import tempfile
 
+logging.getLogger('oauth2client.client').setLevel(logging.ERROR)
 import oauth2client.client
 
 import httplib2
 
 import googleautoauth.google_authorizer
+import googleautoauth.client
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -131,3 +133,14 @@ class Authorize(object):
 
         updated_token = flow.step2_exchange(token)
         self._update_token(updated_token)
+
+    def get_client(self, *args, **kwargs):
+        """Produce the actual API client. THE CLIENT OBJECT SHOULD *NOT* BE
+        CACHED. This will induce a check for whether our authorization has
+        expired and automatically refresh if necessary.
+        """
+
+        http = httplib2.Http()
+        self.token.authorize(http)
+
+        return googleautoauth.client.get_client(http, *args, **kwargs)
