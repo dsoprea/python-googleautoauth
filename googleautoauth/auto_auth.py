@@ -9,6 +9,7 @@ import SocketServer
 import BaseHTTPServer
 
 import googleautoauth.google_authorizer
+import googleautoauth.authorize
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -109,10 +110,10 @@ class _WebserverMonitor(object):
 
                     return
 
-                auth_code = arguments['code'][0]
-                _LOGGER.debug("Received auth-code [{}]".format(auth_code))
+                token = arguments['code'][0]
+                _LOGGER.debug("Received auth-code [{}]".format(token))
 
-                monitor._auth_code = auth_code
+                monitor._token = token
 
                 monitor._request_state_e.set()
 
@@ -174,8 +175,8 @@ Authorization recorded.
         return self._request_state_e
 
     @property
-    def auth_code(self):
-        return self._auth_code
+    def token(self):
+        return self._token
 
 
 class AutoAuth(object):
@@ -225,12 +226,46 @@ class AutoAuth(object):
         except:
             raise
         else:
-            auth_code = wm.auth_code
+            token = wm.token
         finally:
             # Shutdown the webserver.
             wm.stop()
 
         # Finish the authorization from our side and record.
-        self.__ga.do_authorize(auth_code)
+        self.__ga.do_authorize(token)
 
         _LOGGER.debug("Authorization complete.")
+
+
+class AuthorizerBridge(googleautoauth.google_authorizer.GoogleAuthorizer):
+    """A bridging object that adapts the auto-auth flow to the traditional
+    `Authorize` process since an `Authorize` object can also be used just to
+    support a traditional authorization flow without involving an automatic-
+    authorization.
+    """
+
+    def __init__(self, storage_filepath, client_credentials, scopes):
+        self.__storage_filepath = storage_filepath
+        self.__client_credentials = client_credentials
+        self.__scopes = scopes
+
+    def get_auth_url(self, redirect_uri):
+        self.__a = \
+            googleautoauth.authorize.Authorize(
+                self.__storage_filepath,
+                self.__client_credentials,
+                self.__scopes,
+                redirect_uri=redirect_uri)
+
+        return self.__a.get_auth_url()
+
+    def do_authorize(self, token):
+        self.__token = token
+
+    @property
+    def token(self):
+        return self.__token
+
+    @property
+    def authorize(self):
+        return self.__a

@@ -9,16 +9,39 @@ import oauth2client.client
 
 import httplib2
 
+import googleautoauth.google_authorizer
+
 _LOGGER = logging.getLogger(__name__)
 
 
+def build_client_credentials(client_id, client_secret):
+    """Our identity with Google."""
+
+    client_credentials = {
+        "web": {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "redirect_uris": [],
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://accounts.google.com/o/oauth2/token"
+        }
+    }
+
+    return client_credentials
+
+
 class Authorize(object):
-    """Manages authorization process."""
+    """Manages authorization process. This is general-purpose and not auto-
+    auth-specific.
+    """
 
     def __init__(
             self, storage_filepath,
             client_credentials,
             scopes,
+
+            # By default, tell Google that we want to see the token in the
+            # webpage rather than redirecting anywhere else.
             redirect_uri=oauth2client.client.OOB_CALLBACK_URN):
         self.__client_credentials = client_credentials
         self.__redirect_uri = redirect_uri
@@ -55,40 +78,39 @@ class Authorize(object):
         flow = self._get_flow()
         return flow.step1_get_authorize_url()
 
-    def _update_cache(self, credentials):
+    def _update_token(self, token):
         """Write the credentials we get either from the initial authorization
         or a refresh.
         """
 
-        with open(self.__filepath, 'w') as f:
-            pickle.dump(credentials, f)
+        self.__token = token
 
-    def check_for_renew(self, credentials=None):
+        with open(self.__filepath, 'w') as f:
+            pickle.dump(self.__token, f)
+
+    def check_for_renew(self, do_force=False):
         """Call this at regular intervals to make sure our credentials don't
         need to be refreshed. It's very low-cost if nothing needs to be done.
         """
 
-        if credentials is None:
-            credentials = self.credentials
-
-        if datetime.datetime.now() < credentials.token_expiry:
+        if do_force is False and datetime.datetime.now() < self.token.token_expiry:
             return
 
         http = httplib2.Http()
-        credentials.refresh(http)
+        self.token.refresh(http)
 
-        self._update_cache(credentials)
+        self._update_token(self.token)
 
     @property
-    def credentials(self):
+    def token(self):
         try:
-            return self.__credentials
+            return self.__token
         except AttributeError:
             pass
 
         try:
             with open(self.__filepath) as f:
-                self.__credentials = pickle.load(f)
+                self.__token = pickle.load(f)
         except IOError:
             found = False
         else:
@@ -97,13 +119,15 @@ class Authorize(object):
         if found is False:
             raise Exception("Credentials not found. Please authorize first.")
 
+        # `self.__client_credentials` will always exist by this point.
         self.check_for_renew()
-        return self.__credentials
 
-    def authorize(self, auth_code):
+        return self.__token
+
+    def authorize(self, token):
         """Called with the code the user gets from Google."""
 
         flow = self._get_flow()
 
-        credentials = flow.step2_exchange(auth_code)
-        self._update_cache(credentials)
+        updated_token = flow.step2_exchange(token)
+        self._update_token(updated_token)
