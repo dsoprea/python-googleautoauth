@@ -15,16 +15,18 @@ The tool must also periodically renew its authorization (whenever the expiration
 
 This tool eliminates most of the steps:
 
-1. Developer: Provide an authorization object containing the developer's identity information.
+1. Developer: Provide the developer's client-identity information.
 2. Us: Create a temporary webserver on an available port.
 3. Us: Build a URL that takes the local webserver as the redirect URI.
 4. Us: Open the Google authentication portal in the default web browser.
-5. User: Acknowledges the authorization in the browser.
+5. User: Acknowledges the request in the browser.
 6. Google: Authorize and redirect to the local, temporary webserver (passes the authorization token as an argument). Since Google does not need to talk directly to the webserver (the browser just redirects to a *localhost* URL), firewalls do not matter.
 7. Us: The temporary webserver receives and records the token.
 8. Us: The webserver is terminated and the authorization object records the token.
 
 Notice that now only one step needs to be implemented by the developer and only one step needs to be performed by the user.
+
+The interactive flow is only necessary before the authorization file is initially created. All further requests will be done in the background.
 
 
 Implementation Requirements
@@ -37,6 +39,11 @@ Implementation Requirements
 Usage
 =====
 
+Flow
+----
+
+Examples are for the YouTube API.
+
 Build your client-identity::
 
     client_id = 'abc'
@@ -44,63 +51,49 @@ Build your client-identity::
 
     cc = googleautoauth.authorize.build_client_credentials(client_id, client_secret)
 
-Create a `GoogleAuthorizer` object (`AuthorizerBridge` fulfills this)::
+Create a `ClientManager` object::
 
-    storage_filepath = '~/.token'
+    service_name = 'youtube'
+    service_version = 'v3'
+
     scopes = [
-        '...',
+        'https://www.googleapis.com/auth/youtube.readonly',
     ]
 
-    ab = googleautoauth.auto_auth.AuthorizerBridge(storage_filepath, cc, scopes)
+    # If this is `None`, either the value will be taken from `GAA_GOOGLE_API_AUTHORIZATION_FILEPATH` (or the call will raise `KeyError` if not defined).
+    filepath = None
 
-Create an `AutoAuth` object::
-
-    aa = googleautoauth.auto_auth.AutoAuth(ab)
-
-Run the automatic process detailed above::
-
-    aa.get_and_write_creds()
-
-Make an API client:
-
-    # Get a YouTube API client.
-    client = ab.authorize.get_client('youtube', 'v3')
+    cm = googleautoauth.client_manager.ClientManager(
+            service_name,
+            service_version,
+            cc,
+            scopes,
+            filepath=filepath)
 
 Example usage:
 
+    # This will open the Google authorization portal in the browser if the
+    # authorization file doesn't already exist.
+    client = cm.get_client()
+
     playlists = client.playlists()
 
-    request = playlists.list(
+    request = \
+        playlists.list(
             mine=True,
             part='contentDetails')
 
     result = request.execute()
-    # result['kind'] == '(kind of entity)'
+    # result['kind'] == 'youtube#playlistListResponse'
 
-To check the token and renew if necessary::
-
-    ab.authorize.check_for_renew()
-
-
-*check_for_renew* Notes
-~~~~~~~~~~~~~~~~~~~~~~~
-
-- This call has a trivial cost if the token does not need to be renewed.
-- This call is implicitly made on every invocation of `get_client()` (above). **Do not cache the client** unless you are prepared to regularly call `check_for_renew()` yourself.
-
-
-Resume Session
---------------
-
-When you want to resume the same authorization session later (which should work indefinitely since the process implicitly renews the authorization token periodically), you may directly use the `Authorize` class (instead of `AutoAuth`)::
-
-    authorize = googleautoauth.authorize.Authorize(storage_filepath, client_credentials, scopes)
-    client = authorize.get_client('youtube', 'v3')
+The `ClientManager` object can be cached but the client object returned by `cm.get_client()` can not. This call will automatically renew the API authorization as required.
 
 
 Testing
 =======
 
-To run the tests (requires user interaction with the browser)::
+To run the tests::
 
     $ ./test.sh
+
+The tests will require user interaction with the browser.

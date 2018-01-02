@@ -40,7 +40,7 @@ class Authorize(object):
     """
 
     def __init__(
-            self, storage_filepath,
+            self, authorization_filepath,
             client_credentials,
             scopes,
 
@@ -51,14 +51,14 @@ class Authorize(object):
         self.__redirect_uri = redirect_uri
         self.__scopes = ' '.join(scopes)
 
-        filepath = os.path.expanduser(storage_filepath)
+        filepath = os.path.expanduser(authorization_filepath)
 
-        path = os.path.dirname(storage_filepath)
+        path = os.path.dirname(authorization_filepath)
         if os.path.exists(path) is False:
             raise Exception("Storage path does not already exist: [{}]".format(
                             path))
 
-        self.__filepath = storage_filepath
+        self.__filepath = authorization_filepath
 
     def _get_flow(self):
         try:

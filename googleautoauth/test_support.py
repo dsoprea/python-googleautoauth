@@ -6,6 +6,7 @@ import contextlib
 import io
 
 import googleautoauth.authorize
+import googleautoauth.client_manager
 
 @contextlib.contextmanager
 def temp_path():
@@ -64,6 +65,25 @@ def get_test_authorizer():
                 scopes)
 
         yield a
+
+def get_client_manager():
+    """Return a CM instance. This requires
+    GAA_GOOGLE_API_AUTHORIZATION_FILEPATH to be defined.
+    """
+
+    credentials = get_test_client_credentials()
+
+    scopes = [
+        'https://www.googleapis.com/auth/youtube.readonly',
+    ]
+
+    cm = googleautoauth.client_manager.ClientManager(
+            'youtube',
+            'v3',
+            credentials,
+            scopes)
+
+    return cm
 
 @contextlib.contextmanager
 def capture_output(streams_cb=None):
