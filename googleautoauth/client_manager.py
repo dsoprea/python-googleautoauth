@@ -1,6 +1,8 @@
 import os
 import logging
 import contextlib
+import json
+import hashlib
 
 import httplib2
 
@@ -23,10 +25,26 @@ class ClientManager(object):
         self.__service_version = service_version
 
         if filepath is None:
-            filepath = \
+            path = \
                 os.environ.get(
-                    'GAA_GOOGLE_API_AUTHORIZATION_FILEPATH',
-                    googleautoauth.config.client_manager.DEFAULT_FILEPATH)
+                    'GAA_GOOGLE_API_AUTHORIZATION_REPO_PATH',
+                    googleautoauth.config.client_manager.DEFAULT_PATH)
+
+            # Create a hash based on our unique profile in order to prevent
+            # collisions with other integrations on the system.
+
+            payload = {
+                'service_name': service_name,
+                'service_version': service_version,
+                'client_credentials': client_credentials,
+                'scopes': scopes,
+            }
+
+            encoded = json.dumps(payload)
+            hash_ = hashlib.sha1(encoded).hexdigest()
+
+            filename = '{}_{}_{}'.format(service_name, service_version, hash_)
+            filepath = os.path.join(path, filename)
 
         filepath = os.path.expanduser(filepath)
         self._initialize(filepath, client_credentials, scopes)

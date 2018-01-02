@@ -1,1 +1,1 @@
-DEFAULT_FILEPATH = '~/.googleautoauth/authorization'
+DEFAULT_PATH = '~/.googleautoauth'
