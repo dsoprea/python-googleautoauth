@@ -6,6 +6,7 @@ import hashlib
 
 import httplib2
 
+import googleautoauth.constants
 import googleautoauth.config.client_manager
 import googleautoauth.authorize
 import googleautoauth.auto_auth
@@ -20,7 +21,7 @@ class ClientManager(object):
 
     def __init__(
             self, service_name, service_version, client_credentials,
-            scopes, filepath=None):
+            scopes, filepath=None, token_from_user=None):
         self.__service_name = service_name
         self.__service_version = service_version
 
@@ -47,18 +48,43 @@ class ClientManager(object):
             filepath = os.path.join(path, filename)
 
         filepath = os.path.expanduser(filepath)
-        self._initialize(filepath, client_credentials, scopes)
+        self._initialize(
+            filepath,
+            client_credentials,
+            scopes,
+            token_from_user=token_from_user)
 
-    def _initialize(self, filepath, cc, scopes):
-        if os.path.exists(filepath) is True:
-            _LOGGER.debug("Found existing authorization: [{}]".format(
+    def _initialize(self, filepath, cc, scopes, token_from_user=None):
+        authorize = None
+
+        if token_from_user is not None:
+            _LOGGER.debug("We were given a manual authorization: [{}]".format(
                           filepath))
 
-            self.__authorize = \
+            authorize = \
                 googleautoauth.authorize.Authorize(
                     filepath,
                     cc,
                     scopes)
+
+            authorize.authorize(token_from_user)
+
+            self._mode = googleautoauth.constants.CMM_MANUAL
+
+        if os.path.exists(filepath) is True:
+            _LOGGER.debug("Found existing authorization: [{}]".format(
+                          filepath))
+
+            if authorize is None:
+                authorize = \
+                    googleautoauth.authorize.Authorize(
+                        filepath,
+                        cc,
+                        scopes)
+
+                self._mode = googleautoauth.constants.CMM_EXISTING
+
+            self.__authorize = authorize
         else:
             _LOGGER.debug("No existing authorization found. Executing auto-"
                           "auth flow: [{}]".format(filepath))
@@ -77,6 +103,11 @@ class ClientManager(object):
             aa.get_and_write_creds()
 
             self.__authorize = ab.authorize
+            self._mode = googleautoauth.constants.CMM_INTERACTIVE
+
+        assert \
+            getattr(self, '_mode', None) is not None, \
+            "Mode not correctly set."
 
     def get_client(self):
         """This should be called any time the API needs to be accessed. It
@@ -88,3 +119,7 @@ class ClientManager(object):
                 self.__service_version)
 
         return c
+
+    @property
+    def mode(self):
+        return self._mode

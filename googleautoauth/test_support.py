@@ -66,7 +66,7 @@ def get_test_authorizer():
 
         yield a
 
-def get_client_manager():
+def get_client_manager(*args, **kwargs):
     """Return a CM instance. This requires
     GAA_GOOGLE_API_AUTHORIZATION_FILEPATH to be defined.
     """
@@ -81,7 +81,9 @@ def get_client_manager():
             'youtube',
             'v3',
             credentials,
-            scopes)
+            scopes,
+            *args,
+            **kwargs)
 
     return cm
 
@@ -101,3 +103,27 @@ def capture_output(streams_cb=None):
     finally:
         sys.stdout = stdout
         sys.stderr = stderr
+
+@contextlib.contextmanager
+def environment(**kwargs):
+    original = os.environ.copy()
+
+    for k, v in kwargs.items():
+        if v is None:
+            try:
+                del os.environ[k]
+            except KeyError:
+                pass
+        else:
+            os.environ[k] = v
+
+    yield
+
+    for k, v in kwargs.items():
+        if v is None:
+            continue
+
+        del os.environ[k]
+
+    for k, v in original.items():
+        os.environ[k] = v

@@ -33,6 +33,19 @@ def build_client_credentials(client_id, client_secret):
 
     return client_credentials
 
+def get_flow(cc, scopes, redirect_uri):
+    with tempfile.NamedTemporaryFile() as f:
+        json.dump(cc, f)
+        f.flush()
+
+        flow = \
+            oauth2client.client.flow_from_clientsecrets(
+                f.name,
+                scope=scopes,
+                redirect_uri=redirect_uri)
+
+        return flow
+
 
 class Authorize(object):
     """Manages authorization process. This is general-purpose and not auto-
@@ -66,15 +79,11 @@ class Authorize(object):
         except AttributeError:
             pass
 
-        with tempfile.NamedTemporaryFile() as f:
-            json.dump(self.__client_credentials, f)
-            f.flush()
-
-            self.__flow = \
-                oauth2client.client.flow_from_clientsecrets(
-                    f.name,
-                    scope=self.__scopes,
-                    redirect_uri=self.__redirect_uri)
+        self.__flow = \
+            get_flow(
+                self.__client_credentials,
+                self.__scopes,
+                self.__redirect_uri)
 
         return self.__flow
 

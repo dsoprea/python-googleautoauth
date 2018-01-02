@@ -8,6 +8,8 @@ sys.path.insert(0, _APP_PATH)
 import logging
 import argparse
 
+import oauth2client.client
+
 import googleautoauth.config.log
 import googleautoauth.client_manager
 import googleautoauth.authorize
@@ -44,8 +46,17 @@ def _get_args():
         help="Scope. May be provided more than once.")
 
     parser.add_argument(
-        '-as', '--authorization-filepath',
+        '-af', '--authorization-filepath',
         help="Authorization file-path")
+
+    parser.add_argument(
+        '-t', '--token-from-user',
+        help="Manually provide a token")
+
+    parser.add_argument(
+        '-u', '--url',
+        action='store_true',
+        help="Manually request a token from a browser")
 
     parser.add_argument(
         '-v', '--verbose',
@@ -59,17 +70,33 @@ def _main():
     args = _get_args()
     googleautoauth.config.log.configure(args.verbose)
 
+    assert \
+        not (args.url is True and args.token_from_user is not None), \
+        "-u and -t are mutually exclusive."
+
     cc = \
         googleautoauth.authorize.build_client_credentials(
             client_id=args.client_id,
             client_secret=args.client_secret)
+
+    if args.url is True:
+        flow = googleautoauth.authorize.get_flow(
+                cc,
+                args.scope,
+                oauth2client.client.OOB_CALLBACK_URN)
+
+        url = flow.step1_get_authorize_url()
+        print(url)
+
+        return
 
     cm = googleautoauth.client_manager.ClientManager(
             args.service_name,
             args.service_version,
             cc,
             args.scope,
-            filepath=args.authorization_filepath)
+            filepath=args.authorization_filepath,
+            token_from_user=args.token_from_user)
 
     # Include the flow.
     cm.get_client()

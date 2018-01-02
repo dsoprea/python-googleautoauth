@@ -89,6 +89,21 @@ Example usage:
 The `ClientManager` object can be cached but the client object returned by `cm.get_client()` can not. This call will automatically renew the API authorization as required.
 
 
+Command-Line Tool
+-----------------
+
+A command-line tool (`gaa_authorize`) is provided to pre-create an authorization, for convenience. This can be used to ensure that no interactive authoriation is triggered from your program flow.
+
+The tool can also be used to get a URL (-u) that can be used to manually get a token and to then manually register it locally (-t).
+
+Example usage::
+
+    $ gaa_authorize "service name" "service version" "(client ID)" "(client secret)" --scope "(scope 1)" --scope "(scope 2...)" -u
+    https://accounts.google.com/o/oauth2/auth?scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fyoutube.readonly&redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob&response_type=code&client_id=872980721285-bk2f9bk1r1j6tmo5k9ndbia4ef6nmi80.apps.googleusercontent.com&access_type=offline
+
+    $ gaa_authorize "service name" "service version" "(client ID)" "(client secret)" --scope "(scope 1)" --scope "(scope 2...)" -t 4/zXaFbTbevyn3zEizMiRdY0GVb3BM7XBUqbGdJhi8Fh8
+
+
 Testing
 =======
 
