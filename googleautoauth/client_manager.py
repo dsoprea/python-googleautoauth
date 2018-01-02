@@ -4,6 +4,7 @@ import contextlib
 
 import httplib2
 
+import googleautoauth.config.client_manager
 import googleautoauth.authorize
 import googleautoauth.auto_auth
 
@@ -25,8 +26,11 @@ class ClientManager(object):
 
         if filepath is None:
             filepath = \
-                os.environ['GAA_GOOGLE_API_AUTHORIZATION_FILEPATH']
+                os.environ.get(
+                    'GAA_GOOGLE_API_AUTHORIZATION_FILEPATH',
+                    googleautoauth.config.client_manager.DEFAULT_FILEPATH)
 
+        filepath = os.path.expanduser(filepath)
         self._initialize(filepath, client_credentials, scopes)
 
     def _initialize(self, filepath, cc, scopes):

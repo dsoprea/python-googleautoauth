@@ -60,7 +60,7 @@ Create a `ClientManager` object::
         'https://www.googleapis.com/auth/youtube.readonly',
     ]
 
-    # If this is `None`, either the value will be taken from `GAA_GOOGLE_API_AUTHORIZATION_FILEPATH` (or the call will raise `KeyError` if not defined).
+    # If this is `None` or omitted, the value will either be taken from `GAA_GOOGLE_API_AUTHORIZATION_FILEPATH` or default to '~/.googleautoauth/authorization'.
     filepath = None
 
     cm = googleautoauth.client_manager.ClientManager(
