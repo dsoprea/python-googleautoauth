@@ -37,6 +37,7 @@ setuptools.setup(
         ],
     },
     scripts=[
+        'googleautoauth/resources/scripts/gaa_authorize',
     ],
     install_requires=_REQUIREMENTS,
 )

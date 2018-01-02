@@ -10,8 +10,6 @@ import googleautoauth.auto_auth
 
 _LOGGER = logging.getLogger(__name__)
 
-# TODO(dustin): We should still allow a manual flow, though the user can also just copy the token file if he already has one. Locked-down environments may not, though.
-
 
 class ClientManager(object):
     """This class knows how to cache some of the connection semantics without
