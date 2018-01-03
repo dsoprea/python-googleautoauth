@@ -49,16 +49,18 @@ class TestAuthorize(unittest.TestCase):
             else:
                 raise Exception("Expected an error from using the token more than once.")
 
-            # Read back the final authorization.
-            self.assertTrue(issubclass(authorize.token.__class__, oauth2client.client.OAuth2Credentials))
+            token = authorize._get_token(allow_renew=False)
 
-            original_token = authorize.token.access_token
+            # Read back the final authorization.
+            self.assertTrue(issubclass(token.__class__, oauth2client.client.OAuth2Credentials))
+
+            original_token = token.access_token
 
             # Should be ignored since we couldn't possibly have expired yet.
-            authorize.check_for_renew()
+            authorize._check_for_renew(token)
 
             # The token shouldn't have changed because we haven't yet expired.
-            self.assertEquals(authorize.token.access_token, original_token)
+            self.assertEquals(token.access_token, original_token)
 
             client = authorize.get_client('youtube', 'v3')
             playlists = client.playlists()

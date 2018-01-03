@@ -4,6 +4,8 @@ import pickle
 import json
 import datetime
 import tempfile
+import fcntl
+import contextlib
 
 logging.getLogger('oauth2client.client').setLevel(logging.ERROR)
 import oauth2client.client
@@ -60,6 +62,9 @@ class Authorize(object):
             # By default, tell Google that we want to see the token in the
             # webpage rather than redirecting anywhere else.
             redirect_uri=oauth2client.client.OOB_CALLBACK_URN):
+        self.__lock_filepath = \
+            os.path.join(tempfile.gettempdir(), '.google_api_auth_lock')
+
         self.__client_credentials = client_credentials
         self.__redirect_uri = redirect_uri
         self.__scopes = ' '.join(scopes)
@@ -96,34 +101,67 @@ class Authorize(object):
         or a refresh.
         """
 
-        self.__token = token
+        self._token = token
 
         with open(self.__filepath, 'w') as f:
-            pickle.dump(self.__token, f)
+            pickle.dump(self._token, f)
 
-    def check_for_renew(self, do_force=False):
+    def _check_for_renew(self, token, do_force=False):
         """Call this at regular intervals to make sure our credentials don't
         need to be refreshed. It's very low-cost if nothing needs to be done.
         """
 
-        if do_force is False and datetime.datetime.now() < self.token.token_expiry:
-            return
+        with self._lock_auth_file():
+            if do_force is False and \
+               datetime.datetime.now() < token.token_expiry:
+                return
 
-        http = httplib2.Http()
-        self.token.refresh(http)
+            http = httplib2.Http()
+            token.refresh(http)
 
-        self._update_token(self.token)
+            self._update_token(token)
 
-    @property
-    def token(self):
+    @contextlib.contextmanager
+    def _lock_auth_file(self):
+        # Allow for a recurrent file-lock. We're not multithreaded so there
+        # should be any issues.
+
         try:
-            return self.__token
+            self.__file_locked
         except AttributeError:
             pass
+        else:
+            yield
+            return
+
+        self.__file_locked = True
+
+        try:
+            if os.path.exists(self.__lock_filepath) is False:
+                with open(self.__lock_filepath, 'w'):
+                    pass
+
+            with open(self.__lock_filepath, 'w') as f:
+                fcntl.flock(f, fcntl.LOCK_EX)
+
+                try:
+                    yield
+                finally:
+                    fcntl.flock(f, fcntl.LOCK_UN)
+        finally:
+            del self.__file_locked
+
+    def _get_token(self, allow_renew=True):
+        if getattr(self, '_token', None) is not None:
+            # If we get here, a token *was* known.
+            self._check_for_renew(self._token)
+            return self._token
+
+        # If we get here, a token *was not* already known.
 
         try:
             with open(self.__filepath) as f:
-                self.__token = pickle.load(f)
+                self._token = pickle.load(f)
         except IOError:
             found = False
         else:
@@ -133,9 +171,10 @@ class Authorize(object):
             raise Exception("Credentials not found. Please authorize first.")
 
         # `self.__client_credentials` will always exist by this point.
-        self.check_for_renew()
+        if allow_renew is True:
+            self._check_for_renew(self._token)
 
-        return self.__token
+        return self._token
 
     def _robust(self, cb):
         n = _DEFAULT_RETRIES
@@ -175,6 +214,6 @@ class Authorize(object):
         """
 
         http = httplib2.Http()
-        self.token.authorize(http)
+        self._get_token().authorize(http)
 
         return googleautoauth.client.get_client(http, *args, **kwargs)
