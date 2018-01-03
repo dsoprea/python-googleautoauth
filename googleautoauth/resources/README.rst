@@ -70,7 +70,7 @@ Create a `ClientManager` object::
             scopes,
             filepath=filepath)
 
-Example usage:
+Example usage::
 
     # This will open the Google authorization portal in the browser if the
     # authorization file doesn't already exist.
