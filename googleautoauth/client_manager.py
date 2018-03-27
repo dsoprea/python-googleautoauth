@@ -21,9 +21,12 @@ class ClientManager(object):
 
     def __init__(
             self, service_name, service_version, client_credentials,
-            scopes, filepath=None, token_from_user=None):
+            scopes, filepath=None, token_from_user=None, webserver_port=0):
         self.__service_name = service_name
         self.__service_version = service_version
+
+        self.__webserver_port = \
+            int(os.environ.get('GAA_WEBSERVER_PORT', str(webserver_port)))
 
         if filepath is None:
             path = \
@@ -100,7 +103,7 @@ class ClientManager(object):
                     scopes)
 
             aa = googleautoauth.auto_auth.AutoAuth(ab)
-            aa.get_and_write_creds()
+            aa.get_and_write_creds(webserver_port=self.__webserver_port)
 
             self.__authorize = ab.authorize
             self._mode = googleautoauth.constants.CMM_INTERACTIVE

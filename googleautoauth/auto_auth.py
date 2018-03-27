@@ -23,12 +23,14 @@ class _HTTPRequest(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
 class _WebserverMonitor(object):
-    def __init__(self):
+    def __init__(self, webserver_port=0):
+        self._webserver_port = webserver_port
+
         # Allows us to be in sync when starting and stopping the thread.
         self.__server_state_e = threading.Event()
 
         self.__t = threading.Thread(target=self.__thread)
-        self._port = None
+        self._effective_port = None
 
         # Signaled when the authorization response is received.
         self._request_state_e = threading.Event()
@@ -140,13 +142,13 @@ Authorization recorded.
                 r = SocketServer.TCPServer.server_activate(self, *args, **kwargs)
 
                 # Sniff the port, now that we're running.
-                monitor._port = self.server_address[1]
+                monitor._effective_port = self.server_address[1]
 
                 return r
 
         # Our little webserver. (0) for the port will automatically assign it
         # to some unused port.
-        binding = ('localhost', 0)
+        binding = ('localhost', self._webserver_port)
         self.__s = Server(binding, Handler)
 
         _LOGGER.debug("Created server.")
@@ -165,10 +167,10 @@ Authorization recorded.
     @property
     def port(self):
         assert \
-            self._port is not None, \
+            self._effective_port is not None, \
             "Thread hasn't been started or a port hasn't been assigned."
 
-        return self._port
+        return self._effective_port
 
     @property
     def request_state_e(self):
@@ -195,10 +197,10 @@ class AutoAuth(object):
 
         self.__ga = google_authorizer
 
-    def get_and_write_creds(self):
+    def get_and_write_creds(self, webserver_port=0):
         _LOGGER.debug("Requesting authorization.")
 
-        wm = _WebserverMonitor()
+        wm = _WebserverMonitor(webserver_port=webserver_port)
 
         # Start the webserver.
         wm.start()

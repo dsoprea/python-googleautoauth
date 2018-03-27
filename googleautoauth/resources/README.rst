@@ -104,6 +104,12 @@ Example usage::
     $ gaa_authorize "service name" "service version" "(client ID)" "(client secret)" --scope "(scope 1)" --scope "(scope 2...)" -t 4/zXaFbTbevyn3zEizMiRdY0GVb3BM7XBUqbGdJhi8Fh8
 
 
+Notes
+=====
+
+- By default, the first available open port is used for the webserver (which is then passed to Google in the redirect-URL). You may use a specific port by setting it into `GAA_WEBSERVER_PORT`.
+
+
 Testing
 =======
 
